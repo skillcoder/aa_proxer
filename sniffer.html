@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<style>
+html, body {
+height: 100%;
+width: 100%;
+padding: 0;
+margin: 0;
+}
+#packet_log {
+	font-family: monospace;
+	width: 500px;
+	height: 100%;
+	overflow-x:hidden;
+	overflow-y:visible;
+}
+.packet {
+    margin-bottom: 15px;
+}
+.packet .header {
+	color: #d9de15;
+    background-color: #4c4c2d;
+}
+.packet .dd04 {
+    background-color: azure;
+}
+.packet .full {
+	background-color: #fff48f;
+}
+.fleft {
+	float: left;
+}
+#log {
+    height: 500px;
+	width: 100%;
+	background-color: #caf6fd;
+	overflow-x:hidden;
+	overflow-y:visible;
+}
+#log .time {
+	font-size: 12px;
+}
+#log .time:after {
+	content: '\25BA';
+	color: #298fe8;
+}
+#log .error {
+	color: red;
+}
+#log .event {
+	color: #9e0808;
+    background-color: antiquewhite;
+}
+#log .object {
+	color: #366504;
+    background-color: #d7faff;
+}
+.padding {
+	margin-bottom: 5px;
+}
+</style>
+</head>
+<body>
+  <div id="packet_log" class="fleft"></div>
+  <div class="fleft">
+    <div id="log"></div>
+	<div class="console padding"><input type="text" id="e-console" size="92"></div>
+    <div class="padding"><input type="checkbox" id="is_autoscroll" checked="checked"><label for="is_autoscroll">Автоскрол пакетов</label></div>
+	<div class="padding"><div>Отправка пакета клиенту</div><input type="text" id="e-2c" size="80"><input type="button" id="btn_2c" value="Отправить"></div>
+	<div class="padding"><input type="button" id="btn_go" value="Начать"></div>
+	<div class="padding">
+		<input type="button" id="btn_ts" value="Сохранить таргет">
+		<input type="button" id="btn_hide" value="Скрыть сохранённый">
+	</div>
+  </div>
+<script>
+$(document).ready(function(){
+	var socketNamespaced = io.connect('/sniffer');
+	socketNamespaced.on('s2c', function(data) {
+		add(data.hex, data);
+	});
+	socketNamespaced.on('event', function(data) {
+		eventLog(data);
+	});
+
+	// Сообщать с прокси о логах (новый таргет... вобще красные строки)
+
+	$('#btn_2c').click(function() {
+		var req = {
+			cmd: '2c',
+			packet: $('#e-2c').val()
+		};
+		req.packet = req.packet.replace(/ /g, '');
+		//check packet odd length
+		if (req.packet.length % 2 != 0) {
+			errorLog('Кривой пакет');
+			return;
+		}
+
+		if (req.packet.length < 6) {
+			errorLog('Короткий пакет');
+            return;
+		}
+
+		addLog('['+req.cmd+'] Packet to client: '+req.packet);
+		socketNamespaced.emit('cmd', req, function(err, data) {
+			if (err) {
+				errorLog('['+req.cmd+'] error: ['+ err +'] '+ data);
+			} else {
+				addLog('['+req.cmd+'] confirm: '+ data);
+			}
+		});
+	});
+
+	$('#btn_go').click(function() {
+		var req = {
+			cmd: 'go',
+		};
+		//	JSON.stringify(result) 
+		addLog('['+req.cmd+']');
+		socketNamespaced.emit('cmd', req, function(err, data) {
+			if (err) {
+				errorLog('['+req.cmd+'] error: ['+ err +'] '+ data);
+			} else {
+				addLog('['+req.cmd+'] confirm: '+ data);
+			}
+		});
+	});
+
+	// destroy
+	//opcode.destroy = '7400';
+	//'0000'+opcode.destroy+'0100'+target_id;
+	$('#btn_hide').click(function() {
+		var req = {
+            cmd: 'hide',
+        };
+        addLog('['+req.cmd+']');
+        socketNamespaced.emit('cmd', req, function(err, data) {
+			if (err) {
+				errorLog('['+req.cmd+'] error: ['+ err +'] '+ data);
+			} else {
+				addLog('['+req.cmd+'] confirm: '+ data);
+			}
+        });
+	});
+
+	$('#btn_ts').click(function() {
+		var req = {
+            cmd: 'ts',
+        };
+        addLog('['+req.cmd+']');
+        socketNamespaced.emit('cmd', req, function(err, data) {
+			if (err) {
+				errorLog('['+req.cmd+'] error: ['+ err +'] '+ data);
+			} else {
+				addLog('['+req.cmd+'] confirm: '+ data);
+			}
+        });
+	});
+
+	$('#e-console').keypress(function(e){
+		if (e.which == 13) {
+			sendConsoleCmd();
+			return false;
+		} else {
+			return true;
+		}
+	});
+
+	function add(hex, opt) {
+		hex = hex.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
+		var log = $('#packet_log');
+		if (!opt.hasOwnProperty('type')) {
+			log.append('<div class="packet"><div class="full">'+hex+'</div></div>');
+		} else if (opt.type == 'dd04') {
+			var hdr = opt.header.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
+			log.append('<div class="packet"><div class="header">'+hdr+'</div><div class="dd04">'+hex+'</div></div>');
+		}
+		smartScroll(log);
+		//log.scrollTop(log[0].scrollHeight);
+	}
+
+	function addLog(msg) {
+		var log = $('#log');
+		var time = getTime();
+		//console.log(time+' > '+msg);
+		log.append('<div class="log_msg"><span class="time">'+time+'</span><span>'+msg+'</span></div>');
+		log.scrollTop(log[0].scrollHeight);
+	}
+
+	function errorLog(msg) {
+        var log = $('#log');
+        var time = getTime();
+        //console.log(time+' > '+msg);
+        log.append('<div class="log_msg"><span class="time">'+time+'</span><span class="error">'+msg+'</span></div>');
+		log.scrollTop(log[0].scrollHeight);
+    }
+
+	function eventLog(e) {
+        var log = $('#log');
+        var time = getTime();
+        log.append('<div class="log_msg"><span class="time">'+time+'</span><span class="event">'+e.e+'</span><span class="object">'+e.obj.toString(16)+'</span></div>');
+		log.scrollTop(log[0].scrollHeight);
+    }
+
+	function smartScroll(container) {
+		var scrollHeight = container[0].scrollHeight; // полная высота блока с учетом прокрутки. Фактически высота содержимого блока. (только для чтения)
+		var offsetHeight = container[0].offsetHeight;// Полная высота блока (только для чтения)
+		if (container[0].scrollWidth > container[0].clientWidth) {
+			// Есть горизонтальная прокрутка
+			//window.logger.debug('HorizontScroll DETECTED');
+			scrollHeight += 17;
+		}
+
+		var height = container.innerHeight();
+		var fixBorder = container.outerHeight() - height;
+		var maxVert  = scrollHeight - offsetHeight + fixBorder; // максимальная высота прокрутки
+
+		var scrollPos    = container.scrollTop();     // расстояние от верхней границы блока до верхней границы видимой части. Или, говоря по-простому, на сколько прокручен блок от верхней границы.(чтение/запись)
+		var chatHeight   = scrollPos + height;
+		var curLine      = scrollHeight - chatHeight;
+
+		// Autoscroll ??
+		if (!$('#is_autoscroll').is(':checked')) {
+			return
+		}
+
+		container.scrollTop(scrollPos + curLine);
+	}
+
+	function getTime() {
+		var dd = new Date();
+		var hh = dd.getHours();
+		var mm = dd.getMinutes();
+		var ss = dd.getSeconds();
+		var ms = dd.getMilliseconds();
+		var curdate = (hh < 10 ? '0'+hh : hh) +':'+ (mm < 10 ? '0'+mm : mm) +':'+ (ss < 10 ? '0'+ss : ss);
+		curdate += '.'+ (ms < 10 ? '00'+ms : (ms < 100 ? '0'+ms : ms));
+		return curdate;
+	}
+
+	function splitCmd(b) {
+		var a = b.indexOf(' ');
+		return [b.substring(0, a), b.substring(a + 1)];
+	}
+
+	function sendConsoleCmd() {
+		var str = $('#e-console').val();
+		var arr = splitCmd(str);
+		if (typeof arr[1] == "undefined") arr[1] = '';
+		var req = {cmd: arr[0], packet: arr[1]};
+		addLog('['+req.cmd+'] '+req.packet);
+		$('#e-console').val('');
+		socketNamespaced.emit('cmd', req, function(err, data) {
+            if (err) {
+                errorLog('['+req.cmd+'] error: ['+ err +'] '+ data);
+            } else {
+                addLog('['+req.cmd+'] confirm: '+ data);
+            }
+        });
+	}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+{
+  "apps" : [{
+    // Application #1
+    "name"        : "proxer",
+    "script"      : "app.js",
+    "args"        : ["--debug"],
+    "watch"       : false,
+    //"node_args"   : "",
+    //"merge_logs"  : true,
+	//"exec_mode"   : "cluster_mode",
+	//"instances"   : 1,
+	"log_date_format" : "YYYY-MM-DD HH:mm:ss",
+    "error_file"  : "/home/user/proxer/logs/proxer-err.log",
+    "out_file"    : "/home/user/proxer/logs/proxer-out.log",
+    "pid_file"    : "/home/user/proxer/var/proxer.pid",
+    "cwd"         : "/home/user/proxer/",
+    "env": {
+      "NODE_ENV": "production"
+    },
+    "env_production" : {
+       "NODE_ENV": "production"
+    },
+    "env_development" : {
+       "NODE_ENV" : "development"
+    }
+  },{
+    // Application #2
+    "name"       : "sniffer",
+    "script"     : "sniffer.js",
+    //"instances"  : 1,
+    //"exec_mode"  : "cluster_mode",
+	"log_date_format" : "YYYY-MM-DD HH:mm:ss",
+    "error_file" : "/home/user/proxer/logs/sniffer-err.log",
+    "out_file"   : "/home/user/proxer/logs/sniffer-out.log",
+    "pid_file"   : "/home/user/proxer/var/sniffer.pid"
+  }]
+}

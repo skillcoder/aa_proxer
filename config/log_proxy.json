@@ -1,0 +1,21 @@
+{
+  "appenders": [
+    {
+      "category": "dev",
+      "type": "file",
+      "absolute": false,
+      "filename": "proxy_debug.log",
+      "maxLogSize": 67108864,
+      "backups": 3,
+      "pollInterval": 1,
+      "layout": {
+        "type": "pattern",
+        "pattern": "%d [%p] - %m"
+      }
+    }
+  ],
+
+  "levels": {
+    "dev":  "DEBUG"
+  }
+}

@@ -1,0 +1,15 @@
+app:
+    ip:          '127.0.0.1'
+    port:        1777
+    server_ip:   '127.0.0.1'
+    server_port: 1239
+    cote_ip:     '239.1.11.111'
+
+proxy:
+    ip:   '127.0.0.1'
+    port: 1250
+
+console:
+    ip:   '127.0.0.1'
+    port: 18889
+

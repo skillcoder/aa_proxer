@@ -1,0 +1,36 @@
+{
+  "name": "proxer",
+  "version": "0.1.1",
+  "description": "TCP managed proxy with middleware logic for MMO Games",
+  "main": "app.js",
+  "dependencies": {
+    "bufferedstream": "^3.1.1",
+    "colors": "^1.1.2",
+    "config": "^1.26.1",
+    "cote": "^0.14.1",
+    "express": "^4.15.3",
+    "log4js": "^1.1.1",
+    "minimist": "^1.2.0",
+    "multi-stdout": "^1.0.0",
+    "pretty-stream": "^1.2.1",
+    "socksv5": "0.0.6",
+    "through2": "^2.0.3",
+    "yaml": "^0.3.0"
+  },
+  "devDependencies": {
+    "tap": "^10.3.3"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "NODE_ENV=production node boot.js"
+  },
+  "author": {
+    "name": "skillcoder",
+    "email": "mail@skillcoder.com",
+    "skype": "skillcoder"
+  },
+  "engines": [
+    "node >=7.8.0"
+  ],
+  "license": "ISC"
+}
